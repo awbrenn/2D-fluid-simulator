@@ -26,6 +26,8 @@ cfd::cfd(const int nx, const int ny, const float dx)
   velocity2 = new float[Nx*Ny*2]();
   color1 = new float[Nx*Ny*3]();
   color2 = new float[Nx*Ny*3]();
+  divergence = new float[Nx*Ny]();
+  pressure = new float[Nx*Ny]();
   densitySourceField = 0;
   colorSourceField = 0;
 }
@@ -103,11 +105,9 @@ void cfd::advect(const float dt)
   swapFloatPointers(&color1, &color2);
 }
 
-void cfd::sources()
-{
-  int index;
 
-  // add sources
+void cfd::addSourceColor()
+{
   if (colorSourceField != 0)
   {
     for (int j=0; j<Ny; ++j)
@@ -123,6 +123,12 @@ void cfd::sources()
     Initialize(colorSourceField, Nx*Ny*3, 0.0);
     colorSourceField = 0;
   }
+}
+
+
+void cfd::addSourceDensity()
+{
+  int index;
 
   if (densitySourceField != 0)
   {
@@ -140,8 +146,11 @@ void cfd::sources()
     Initialize(densitySourceField, Nx*Ny, 0.0);
     densitySourceField = 0;
   }
+}
 
-  // compute sources
+
+void cfd::computeVelocity()
+{
   for (int j=0; j<Ny; ++j)
   {
     for (int i=0; i<Nx; ++i)
@@ -150,4 +159,30 @@ void cfd::sources()
       velocity1[vIndex(i,j,1)] = gravityY * density1[dIndex(i,j)];
     }
   }
+}
+
+
+void cfd::computeDivergence()
+{
+  for (int j = 0; j < Ny; ++j)
+  {
+    for (int i = 0; i < Nx; ++i)
+    {
+      divergence[dIndex(i,j)] = ((velocity1[vIndex(i+1,j,0)] - velocity1[vIndex(i-1,j,0)]) / Dx) +
+                                ((velocity1[vIndex(i+1,j,1)] - velocity1[(i,j-1)]) / (2*Dx));
+    }
+  }
+}
+
+
+
+void cfd::sources()
+{
+  // add sources
+  addSourceColor();
+  addSourceDensity();
+
+  // compute sources
+  computeVelocity();
+  computeDivergence();
 }

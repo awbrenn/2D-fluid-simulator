@@ -15,7 +15,6 @@ class cfd
     ~cfd();
 
     // public methods
-    void bilinearlyInterpolate(const int ii, const int jj, const float x, const float y);
     void advect(const float dt = (float)(1.0/24.0));
     void sources();
 
@@ -47,8 +46,17 @@ class cfd
     float   *density1, *density2;
     float   *velocity1, *velocity2;
     float   *color1, *color2;
+    float   *divergence;
+    float   *pressure;
     float   *densitySourceField;
     float   *colorSourceField;
+
+    // private methods
+    void bilinearlyInterpolate(const int ii, const int jj, const float x, const float y);
+    void addSourceColor();
+    void addSourceDensity();
+    void computeVelocity();
+    void computeDivergence();
 };
 
 #endif //ADVECTION_CFD_H
