@@ -49,7 +49,8 @@ class cfd
     float   *density1, *density2;
     float   *velocity1, *velocity2;
     float   *color1, *color2;
-    float   *densitySourceField, *colorSourceField;
+    float   *densitySourceField;
+    float   *colorSourceField;
 };
 
 #endif //ADVECTION_CFD_H

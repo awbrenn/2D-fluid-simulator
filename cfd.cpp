@@ -106,7 +106,21 @@ void cfd::advect(const float dt)
 void cfd::sources()
 {
   // add sources
-
+  if (colorSourceField != 0)
+  {
+    for (int j=0; j<Ny; ++j)
+    {
+      for (int i=0; i<Nx; ++i)
+      {
+        color1[cIndex(i,j,0)] += colorSourceField[cIndex(i,j,0)];
+        color1[cIndex(i,j,1)] += colorSourceField[cIndex(i,j,1)];
+        color1[cIndex(i,j,2)] += colorSourceField[cIndex(i,j,2)];
+      }
+    }
+    // re-initialize colorSourceField
+    Initialize(colorSourceField, Nx*Ny*3, 0.0);
+    colorSourceField = 0;
+  }
 
   // compute sources
   for (int j=0; j<Ny; ++j)

@@ -62,7 +62,7 @@ using namespace std;
 using namespace lux;
 OIIO_NAMESPACE_USING
 
-int iwidth, iheight, size;
+int iwidth, iheight;
 float* display_map;
 float* density_source;
 float* color_source;
@@ -83,27 +83,28 @@ int xmouse_prev, ymouse_prev;
 
 ////////  OpenImageIO reader
 
-int readOIIOImage( const char* fname, float* img  )
+int readOIIOImage( const char* fname)
 {
-  int xres, yres, channels;
+  int channels;
   ImageInput *in = ImageInput::create (fname);
   if (! in) { return -1; }
   ImageSpec spec;
   in->open (fname, spec);
-  xres = spec.width;
-  yres = spec.height;
+  iwidth = spec.width; // note iwidth and iheight are set to to image size
+  iheight = spec.height;
   channels = spec.nchannels;
-  float* pixels = new float[xres*yres*channels];
+  float* pixels = new float[iwidth*iheight*channels];
+  color_source = new float[iwidth*iheight*channels]; // allocate appropriate space for image
 
   in->read_image (TypeDesc::FLOAT, pixels);
   long index = 0;
-  for( int j=0;j<yres;j++)
+  for( int j=0;j<iheight;j++)
   {
-    for( int i=0;i<xres;i++ )
+    for( int i=0;i<iwidth;i++ )
     {
       for( int c=0;c<channels;c++ )
       {
-        img[ (i + xres*(yres - j - 1))*channels + c ] = pixels[index++];
+        color_source[ (i + iwidth*(iheight - j - 1))*channels + c ] = pixels[index++];
       }
     }
   }
@@ -155,7 +156,7 @@ void ConvertToDisplay()
   float *color = fluid->getColor1();
   for( int j=0;j<iheight;j++ )
   {
-#pragma omp parallel for
+//#pragma omp parallel for
     for(int i=0;i<iwidth;i++ )
     {
       int index = i + iwidth*j;
@@ -186,7 +187,6 @@ void resetScaleFactor( float amount )
 void DabSomePaint( int x, int y )
 {
   int brush_width = (BRUSH_SIZE-1)/2;
-  float* color = fluid->getColor1();
   float* density = fluid->getDensity1();
   int xstart = x - brush_width;
   int ystart = y - brush_width;
@@ -205,9 +205,9 @@ void DabSomePaint( int x, int y )
       for( int iy=ystart;iy<=yend; iy++)
       {
         int index = ix + iwidth*(iheight-iy-1);
-        color[3*index] *= obstruction_brush[ix-xstart][iy-ystart];
-        color[3*index+1] *= obstruction_brush[ix-xstart][iy-ystart];
-        color[3*index+2] *= obstruction_brush[ix-xstart][iy-ystart];
+        color_source[3 * index] *= obstruction_brush[ix - xstart][iy - ystart];
+        color_source[3 * index + 1] *= obstruction_brush[ix - xstart][iy - ystart];
+        color_source[3 * index + 2] *= obstruction_brush[ix - xstart][iy - ystart];
       }
     }
   }
@@ -218,13 +218,14 @@ void DabSomePaint( int x, int y )
       for( int iy=ystart;iy<=yend; iy++)
       {
         int index = ix + iwidth*(iheight-iy-1);
-        color[3*index] += source_brush[ix-xstart][iy-ystart];
-        color[3*index+1] += source_brush[ix-xstart][iy-ystart];
-        color[3*index+2] += source_brush[ix-xstart][iy-ystart];
+        color_source[3 * index] += source_brush[ix - xstart][iy - ystart];
+        color_source[3 * index + 1] += source_brush[ix - xstart][iy - ystart];
+        color_source[3 * index + 2] += source_brush[ix - xstart][iy - ystart];
         density[index] += source_brush[ix-xstart][iy-ystart];
       }
     }
   }
+  fluid->setColorSourceField(color_source);
 
   return;
 }
@@ -292,6 +293,7 @@ void cbOnKeyboard( unsigned char key, int x, int y )
   }
 }
 
+
 void cbMouseDown( int button, int state, int x, int y )
 {
   if( button != GLUT_LEFT_BUTTON ) { return; }
@@ -300,7 +302,6 @@ void cbMouseDown( int button, int state, int x, int y )
   ymouse_prev = y;
   DabSomePaint( x, y );
 }
-
 
 
 void cbMouseMove( int x, int y )
@@ -338,24 +339,19 @@ int main(int argc, char** argv)
   clf.printFinds();
   PrintUsage();
 
-  if (imagename.compare("none") == 0)
-  {
-
-  }
-
   // initialize a few variables
-  size = iwidth * iheight;
-  scaling_factor = 1;
+  scaling_factor = 1.0;
   toggle_animation_on_off = true;
 
-  display_map = new float[3 * size];
-
-  if (imagename != "") {
-    readOIIOImage(imagename.c_str(), color_source);
-  }
+  // if reading the image fails we need to allocate space for color_source
+  if (readOIIOImage(imagename.c_str()) != 0)
+    color_source = new float[iwidth*iheight*3]();
 
   // initialize fluid
   fluid = new cfd(iwidth, iheight, 1.0);
+  fluid->setColorSourceField(color_source);
+
+  display_map = new float[iwidth*iheight*3];
 
   InitializeBrushes();
 
