@@ -105,6 +105,8 @@ void cfd::advect(const float dt)
 
 void cfd::sources()
 {
+  int index;
+
   // add sources
   if (colorSourceField != 0)
   {
@@ -120,6 +122,23 @@ void cfd::sources()
     // re-initialize colorSourceField
     Initialize(colorSourceField, Nx*Ny*3, 0.0);
     colorSourceField = 0;
+  }
+
+  if (densitySourceField != 0)
+  {
+    for (int j=0; j<Ny; ++j)
+    {
+      for (int i=0; i<Nx; ++i)
+      {
+        index = dIndex(i,j);
+        density1[index] += densitySourceField[index];
+        density1[index] += densitySourceField[index];
+        density1[index] += densitySourceField[index];
+      }
+    }
+    // re-initialize colorSourceField
+    Initialize(densitySourceField, Nx*Ny, 0.0);
+    densitySourceField = 0;
   }
 
   // compute sources

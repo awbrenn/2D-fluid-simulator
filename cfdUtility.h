@@ -15,7 +15,7 @@ void swapFloatPointers(float** a, float** b)
 
 void Initialize( float *data, int size, float value )
 {
-//#pragma omp parallel for
+#pragma omp parallel for
   for(int i=0;i<size;i++ ) { data[i] = value; }
 }
 

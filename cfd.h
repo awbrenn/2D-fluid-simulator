@@ -25,12 +25,10 @@ class cfd
     float getDx()         const { return Dx; }
     float getGravityX()   const { return gravityX;}
     float getGravityY()   const { return gravityY;}
-    float* getDensity1()  const { return density1; }
-    float* getDensity2()  const { return density2; }
+    float* getDensity()  const { return density1; }
     float* getVelocity1() const { return velocity1; }
     float* getVelocity2() const { return velocity2; }
-    float* getColor1()    const { return color1; }
-    float* getColor2()    const { return color2; }
+    float* getColor()    const { return color1; }
     float* getDensitySourceField() { return densitySourceField; }
 
     // setters

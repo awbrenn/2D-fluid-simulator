@@ -153,10 +153,10 @@ void setNbCores( int nb )
 
 void ConvertToDisplay()
 {
-  float *color = fluid->getColor1();
+  float *color = fluid->getColor();
   for( int j=0;j<iheight;j++ )
   {
-//#pragma omp parallel for
+#pragma omp parallel for
     for(int i=0;i<iwidth;i++ )
     {
       int index = i + iwidth*j;
@@ -187,7 +187,7 @@ void resetScaleFactor( float amount )
 void DabSomePaint( int x, int y )
 {
   int brush_width = (BRUSH_SIZE-1)/2;
-  float* density = fluid->getDensity1();
+  float* density = fluid->getDensity();
   int xstart = x - brush_width;
   int ystart = y - brush_width;
   if( xstart < 0 ){ xstart = 0; }
@@ -221,11 +221,12 @@ void DabSomePaint( int x, int y )
         color_source[3 * index] += source_brush[ix - xstart][iy - ystart];
         color_source[3 * index + 1] += source_brush[ix - xstart][iy - ystart];
         color_source[3 * index + 2] += source_brush[ix - xstart][iy - ystart];
-        density[index] += source_brush[ix-xstart][iy-ystart];
+        density_source[index] += source_brush[ix-xstart][iy-ystart];
       }
     }
   }
   fluid->setColorSourceField(color_source);
+  fluid->setDensitySourceField(density_source);
 
   return;
 }
@@ -346,6 +347,8 @@ int main(int argc, char** argv)
   // if reading the image fails we need to allocate space for color_source
   if (readOIIOImage(imagename.c_str()) != 0)
     color_source = new float[iwidth*iheight*3]();
+
+  density_source = new float[iwidth*iheight]();
 
   // initialize fluid
   fluid = new cfd(iwidth, iheight, 1.0);
