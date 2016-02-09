@@ -18,6 +18,7 @@ cfd::cfd(const int nx, const int ny, const float dx)
   Nx = nx;
   Ny = ny;
   Dx = dx;
+  nloops = 10;
   gravityX = 0.0;
   gravityY = (float)(-9.8);
   density1 = new float[Nx*Ny]();
@@ -149,14 +150,14 @@ void cfd::addSourceDensity()
 }
 
 
-void cfd::computeVelocity()
+void cfd::computeVelocity(float force_x, float force_y)
 {
   for (int j=0; j<Ny; ++j)
   {
     for (int i=0; i<Nx; ++i)
     {
-      velocity1[vIndex(i,j,0)] = gravityX * density1[dIndex(i,j)];
-      velocity1[vIndex(i,j,1)] = gravityY * density1[dIndex(i,j)];
+      velocity1[vIndex(i,j,0)] = force_x * density1[dIndex(i,j)];
+      velocity1[vIndex(i,j,1)] = force_y * density1[dIndex(i,j)];
     }
   }
 }
@@ -168,12 +169,53 @@ void cfd::computeDivergence()
   {
     for (int i = 0; i < Nx; ++i)
     {
-      divergence[dIndex(i,j)] = ((velocity1[vIndex(i+1,j,0)] - velocity1[vIndex(i-1,j,0)]) / Dx) +
-                                ((velocity1[vIndex(i+1,j,1)] - velocity1[(i,j-1)]) / (2*Dx));
+      divergence[dIndex(i,j)] = ((velocity1[vIndex(i+1,j,0)] - velocity1[vIndex(i-1,j,0)]) / (2*Dx)) +
+                                ((velocity1[vIndex(i,j+1,1)] - velocity1[vIndex(i,j-1,0)]) / (2*Dx));
     }
   }
 }
 
+
+void cfd::computePressure()
+{
+  Initialize(pressure, Nx*Ny, 0.0);
+
+  for(int k = 0; k < nloops; ++k)
+  {
+    for (int j = 0; j < Ny; ++j)
+    {
+      for (int i = 0; i < Nx; ++i)
+      {
+        pressure[pIndex(i,j)] = (float)((pressure[pIndex(i+1,j)] + pressure[pIndex(i-1,j)]  +
+                                         pressure[pIndex(i,j+1)] + pressure[pIndex(i,j-1)]) *
+                                         (0.25) - (Dx*Dx/4.0)*divergence[dIndex(i,j)]);
+      }
+    }
+  }
+}
+
+
+void cfd::computePressureForces(int i, int j, float* force_x, float* force_y)
+{
+  *force_x = (pressure[pIndex(i+1,j)] - pressure[pIndex(i-1,j)])/(2*Dx);
+  *force_y = (pressure[pIndex(i,j+1)] - pressure[pIndex(i,j-1)])/(2*Dx);
+}
+
+
+void cfd::computeVelocityBasedOnPressureForces()
+{
+  float force_x, force_y;
+
+  for (int j = 0; j < Ny; ++j)
+  {
+    for (int i = 0; i < Nx; ++i)
+    {
+      computePressureForces(i, j, &force_x, &force_y);
+      velocity1[vIndex(i,j,0)] -= force_x;
+      velocity1[vIndex(i,j,1)] -= force_y;
+    }
+  }
+}
 
 
 void cfd::sources()
@@ -183,6 +225,8 @@ void cfd::sources()
   addSourceDensity();
 
   // compute sources
-  computeVelocity();
+  computeVelocity(gravityX, gravityY);
   computeDivergence();
+  computePressure();
+  computeVelocityBasedOnPressureForces();
 }

@@ -36,11 +36,13 @@ class cfd
 
     // indexing
     int dIndex(int i, int j)        const { return i+Nx*j; }
+    int pIndex(int i, int j)        const { return i+Nx*j; }
     int vIndex(int i, int j, int c) const { return (i+Nx*j)*2+c; }
     int cIndex(int i, int j, int c) const { return (i+Nx*j)*3+c; }
 
   private:
     int     Nx, Ny;
+    int     nloops;
     float   Dx;
     float   gravityX, gravityY;
     float   *density1, *density2;
@@ -55,8 +57,11 @@ class cfd
     void bilinearlyInterpolate(const int ii, const int jj, const float x, const float y);
     void addSourceColor();
     void addSourceDensity();
-    void computeVelocity();
+    void computeVelocity(float force_x, float force_y);
     void computeDivergence();
+    void computePressure();
+    void computePressureForces(int i, int j, float* force_x, float* force_y);
+    void computeVelocityBasedOnPressureForces();
 };
 
 #endif //ADVECTION_CFD_H
