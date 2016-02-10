@@ -8,7 +8,6 @@
 
 class cfd
 {
-
   public:
     // constructors/destructors
     cfd(int nx, int ny, float dx);

@@ -18,7 +18,7 @@ cfd::cfd(const int nx, const int ny, const float dx)
   Nx = nx;
   Ny = ny;
   Dx = dx;
-  nloops = 10;
+  nloops = 3;
   gravityX = 0.0;
   gravityY = (float)(-9.8);
   density1 = new float[Nx*Ny]();
@@ -186,9 +186,9 @@ void cfd::computePressure()
     {
       for (int i = 0; i < Nx; ++i)
       {
-        pressure[pIndex(i,j)] = (float)((pressure[pIndex(i+1,j)] + pressure[pIndex(i-1,j)]  +
-                                         pressure[pIndex(i,j+1)] + pressure[pIndex(i,j-1)]) *
-                                         (0.25) - (Dx*Dx/4.0)*divergence[dIndex(i,j)]);
+        pressure[pIndex(i,j)] = (float)(((pressure[pIndex(i+1,j)] + pressure[pIndex(i-1,j)]  +
+                                          pressure[pIndex(i,j+1)] + pressure[pIndex(i,j-1)]) *
+                                          (0.25)) - ((Dx*Dx/4.0)*divergence[dIndex(i,j)]));
       }
     }
   }

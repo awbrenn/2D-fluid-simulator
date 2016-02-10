@@ -187,7 +187,6 @@ void resetScaleFactor( float amount )
 void DabSomePaint( int x, int y )
 {
   int brush_width = (BRUSH_SIZE-1)/2;
-  float* density = fluid->getDensity();
   int xstart = x - brush_width;
   int ystart = y - brush_width;
   if( xstart < 0 ){ xstart = 0; }
