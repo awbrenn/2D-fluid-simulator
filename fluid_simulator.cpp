@@ -350,7 +350,7 @@ int main(int argc, char** argv)
   density_source = new float[iwidth*iheight]();
 
   // initialize fluid
-  fluid = new cfd(iwidth, iheight, 1.0);
+  fluid = new cfd(iwidth, iheight, 1.0, (float)(1.0/24.0));
   fluid->setColorSourceField(color_source);
 
   display_map = new float[iwidth*iheight*3];
@@ -366,7 +366,7 @@ int main(int argc, char** argv)
   glutInitWindowSize(iwidth, iheight);
 
   // Open a window 
-  char title[] = "cfd Demo";
+  char title[] = "Fluid Simulator";
   glutCreateWindow(title);
 
   glClearColor(1, 1, 1, 1);

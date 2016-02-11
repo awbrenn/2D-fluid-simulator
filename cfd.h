@@ -10,12 +10,14 @@ class cfd
 {
   public:
     // constructors/destructors
-    cfd(int nx, int ny, float dx);
+    cfd(const int nx, const int ny, const float dx, const float dt);
     ~cfd();
 
     // public methods
-    void advect(const float dt = (float)(1.0/24.0));
+    void advect();
     void sources();
+    void addSourceColor();
+    void addSourceDensity();
 
     // getters
     int getNx()           const { return Nx; }
@@ -38,11 +40,14 @@ class cfd
     int pIndex(int i, int j)        const { return i+Nx*j; }
     int vIndex(int i, int j, int c) const { return (i+Nx*j)*2+c; }
     int cIndex(int i, int j, int c) const { return (i+Nx*j)*3+c; }
+    int clampUpperBound(int index, int upper_bound) { return index<upper_bound  ? index : upper_bound; }
+    int clampLowerBound(int index, int lower_bound) { return index>=lower_bound ? index : lower_bound; }
 
   private:
     int     Nx, Ny;
     int     nloops;
     float   Dx;
+    float   dt;
     float   gravityX, gravityY;
     float   *density1, *density2;
     float   *velocity1, *velocity2;
@@ -54,13 +59,14 @@ class cfd
 
     // private methods
     void bilinearlyInterpolate(const int ii, const int jj, const float x, const float y);
-    void addSourceColor();
-    void addSourceDensity();
     void computeVelocity(float force_x, float force_y);
     void computeDivergence();
     void computePressure();
     void computePressureForces(int i, int j, float* force_x, float* force_y);
     void computeVelocityBasedOnPressureForces();
+    float InterpolateColor(int i, int j, int c, float w1, float w2, float w3, float w4);
+    float InterpolateVelocity(int i, int j, int c, float w1, float w2, float w3, float w4);
+    float InterpolateDensity(int i, int j, float w1, float w2, float w3, float w4);
 };
 
 #endif //ADVECTION_CFD_H
