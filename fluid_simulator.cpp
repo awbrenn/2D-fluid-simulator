@@ -153,7 +153,7 @@ void setNbCores( int nb )
 
 void ConvertToDisplay()
 {
-  float *color = fluid->getColor();
+  float *color = fluid->getColorPointer();
   for( int j=0;j<iheight;j++ )
   {
 #pragma omp parallel for
@@ -331,6 +331,8 @@ int main(int argc, char** argv)
   iwidth = clf.find("-NX", 512, "Horizontal grid points");
   iheight = clf.find("-NY", iwidth, "Vertical grid points");
 
+  int nloops = clf.find("-nloops", 3, "Number of loops over pressure.");
+
   setNbCores(4);
 
   string imagename = clf.find("-image", "none", "Image to drive color");
@@ -350,7 +352,7 @@ int main(int argc, char** argv)
   density_source = new float[iwidth*iheight]();
 
   // initialize fluid
-  fluid = new cfd(iwidth, iheight, 1.0, (float)(1.0/24.0));
+  fluid = new cfd(iwidth, iheight, 1.0, (float)(1.0/24.0), nloops);
   fluid->setColorSourceField(color_source);
 
   display_map = new float[iwidth*iheight*3];

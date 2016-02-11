@@ -10,26 +10,15 @@ class cfd
 {
   public:
     // constructors/destructors
-    cfd(const int nx, const int ny, const float dx, const float dt);
+    cfd(const int nx, const int ny, const float dx, const float dt, int nloops);
     ~cfd();
 
     // public methods
     void advect();
     void sources();
-    void addSourceColor();
-    void addSourceDensity();
 
     // getters
-    int getNx()           const { return Nx; }
-    int getNy()           const { return  Ny; }
-    float getDx()         const { return Dx; }
-    float getGravityX()   const { return gravityX;}
-    float getGravityY()   const { return gravityY;}
-    float* getDensity()  const { return density1; }
-    float* getVelocity1() const { return velocity1; }
-    float* getVelocity2() const { return velocity2; }
-    float* getColor()    const { return color1; }
-    float* getDensitySourceField() { return densitySourceField; }
+    float* getColorPointer()    const { return color1; }
 
     // setters
     void setDensitySourceField(float* dsrc) { densitySourceField = dsrc; }
@@ -40,8 +29,6 @@ class cfd
     int pIndex(int i, int j)        const { return i+Nx*j; }
     int vIndex(int i, int j, int c) const { return (i+Nx*j)*2+c; }
     int cIndex(int i, int j, int c) const { return (i+Nx*j)*3+c; }
-    int clampUpperBound(int index, int upper_bound) { return index<upper_bound  ? index : upper_bound; }
-    int clampLowerBound(int index, int lower_bound) { return index>=lower_bound ? index : lower_bound; }
 
   private:
     int     Nx, Ny;
@@ -58,15 +45,22 @@ class cfd
     float   *colorSourceField;
 
     // private methods
-    void bilinearlyInterpolate(const int ii, const int jj, const float x, const float y);
-    void computeVelocity(float force_x, float force_y);
+    void addSourceColor();
+    void addSourceDensity();
     void computeDivergence();
     void computePressure();
     void computePressureForces(int i, int j, float* force_x, float* force_y);
     void computeVelocityBasedOnPressureForces();
+    void bilinearlyInterpolate(const int ii, const int jj, const float x, const float y);
+    void computeVelocity(float force_x, float force_y);
     float InterpolateColor(int i, int j, int c, float w1, float w2, float w3, float w4);
     float InterpolateVelocity(int i, int j, int c, float w1, float w2, float w3, float w4);
     float InterpolateDensity(int i, int j, float w1, float w2, float w3, float w4);
+    float getDensity(int i, int j);
+    float getVelocity(int i, int j, int c);
+    float getColor(int i, int j, int c);
+    float getPressure(int i, int j);
+    float getDivergence(int i, int j);
 };
 
 #endif //ADVECTION_CFD_H

@@ -6,20 +6,13 @@
 #include "cfdUtility.h"
 
 
-// dealing with negative results
-int mod(int a, int b)
-{
-  return (a%b+b)%b;
-}
-
-
-cfd::cfd(const int nx, const int ny, const float dx, const float Dt)
+cfd::cfd(const int nx, const int ny, const float dx, const float Dt, int Nloops)
 {
   Nx = nx;
   Ny = ny;
   Dx = dx;
   dt = Dt;
-  nloops = 1;
+  nloops = Nloops;
   gravityX = 0.0;
   gravityY = (float)(-9.8);
   density1 = new float[Nx*Ny]();
@@ -46,28 +39,73 @@ cfd::~cfd()
 }
 
 
+float cfd::getDensity(int i, int j)
+{
+  if (i < Nx && i >=0 && j < Ny && j >= 0)
+    return density1[dIndex(i,j)];
+  else
+    return 0.0;
+}
+
+
+float cfd::getVelocity(int i, int j, int c)
+{
+  if (i < Nx && i >=0 && j < Ny && j >= 0)
+    return velocity1[vIndex(i,j,c)];
+  else
+    return 0.0;
+}
+
+
+float cfd::getColor(int i, int j, int c)
+{
+  if (i < Nx && i >=0 && j < Ny && j >= 0)
+    return color1[cIndex(i,j,c)];
+  else
+    return 0.0;
+}
+
+
+float cfd::getPressure(int i, int j)
+{
+  if (i < Nx && i >=0 && j < Ny && j >= 0)
+    return pressure[pIndex(i,j)];
+  else
+    return 0.0;
+}
+
+
+float cfd::getDivergence(int i, int j)
+{
+  if (i < Nx && i >=0 && j < Ny && j >= 0)
+    return divergence[dIndex(i,j)];
+  else
+    return 0.0;
+}
+
+
 float cfd::InterpolateDensity(int i, int j, float w1, float w2, float w3, float w4)
 {
-  return density1[dIndex(i    , j)]     * w1 +
-         density1[dIndex(i + 1, j)]     * w2 +
-         density1[dIndex(i    , j + 1)] * w3 +
-         density1[dIndex(i + 1, j + 1)] * w4;
+  return getDensity(i    , j)     * w1 +
+         getDensity(i + 1, j)     * w2 +
+         getDensity(i    , j + 1) * w3 +
+         getDensity(i + 1, j + 1) * w4;
 }
 
 float cfd::InterpolateVelocity(int i, int j, int c, float w1, float w2, float w3, float w4)
 {
-  return velocity1[vIndex(i    , j,     c)] * w1 +
-         velocity1[vIndex(i + 1, j,     c)] * w2 +
-         velocity1[vIndex(i,     j + 1, c)] * w3 +
-         velocity1[vIndex(i + 1, j + 1, c)] * w4;
+  return getVelocity(i    , j,     c) * w1 +
+         getVelocity(i + 1, j,     c) * w2 +
+         getVelocity(i,     j + 1, c) * w3 +
+         getVelocity(i + 1, j + 1, c) * w4;
 }
 
 float cfd::InterpolateColor(int i, int j, int c, float w1, float w2, float w3, float w4)
 {
-  return color1[cIndex(i    , j,     c)] * w1 +
-         color1[cIndex(i + 1, j,     c)] * w2 +
-         color1[cIndex(i,     j + 1, c)] * w3 +
-         color1[cIndex(i + 1, j + 1, c)] * w4;
+  return getColor(i    , j,     c) * w1 +
+         getColor(i + 1, j,     c) * w2 +
+         getColor(i,     j + 1, c) * w3 +
+         getColor(i + 1, j + 1, c) * w4;
 }
 
 
@@ -190,10 +228,10 @@ void cfd::computeDivergence()
   {
     for (int i = 0; i < Nx; ++i)
     {
-      divergence[dIndex(i,j)] = ((velocity1[vIndex(clampUpperBound(i+1,Nx),j,0)] -
-                                  velocity1[vIndex(clampLowerBound(i-1,0),j,0)]) / (2*Dx)) +
-                                ((velocity1[vIndex(i,clampUpperBound(j+1,Ny),1)] -
-                                  velocity1[vIndex(i,clampLowerBound(j-1,0),1)]) / (2*Dx));
+      divergence[dIndex(i,j)] = (getVelocity(i+1, j,   0) -
+                                 getVelocity(i-1, j,   0)) / (2*Dx) +
+                                (getVelocity(i,   j+1, 1) -
+                                 getVelocity(i,   j-1, 1)) / (2*Dx);
     }
   }
 }
@@ -209,11 +247,11 @@ void cfd::computePressure()
     {
       for (int i = 0; i < Nx; ++i)
       {
-        pressure[pIndex(i,j)] = (float)(((pressure[pIndex(clampUpperBound(i+1,Nx),j)] +
-                                          pressure[pIndex(clampLowerBound(i-1,0),j)]  +
-                                          pressure[pIndex(i,clampUpperBound(j+1,Ny))] +
-                                          pressure[pIndex(i,clampLowerBound(j-1,0))]) *
-                                          (0.25)) - ((Dx*Dx/4.0)*divergence[dIndex(i,j)]));
+        pressure[pIndex(i,j)] = ((getPressure(i+1, j)     +
+                                   getPressure(i-1, j)    +
+                                   getPressure(i,   j+1)  +
+                                   getPressure(i,   j-1)) *
+                                   0.25f) - ((Dx*Dx/4.0f) * getDivergence(i,j));
       }
     }
   }
@@ -222,8 +260,8 @@ void cfd::computePressure()
 
 void cfd::computePressureForces(int i, int j, float* force_x, float* force_y)
 {
-  *force_x = (pressure[pIndex(clampUpperBound(i+1,Nx),j)] - pressure[pIndex(clampLowerBound(i-1, 0),j)])/(2*Dx);
-  *force_y = (pressure[pIndex(i,clampLowerBound(j+1,Ny))] - pressure[pIndex(i,clampLowerBound(j-1,0))])/(2*Dx);
+  *force_x = (getPressure(i+1, j) - getPressure(i-1, j)) / (2*Dx);
+  *force_y = (getPressure(i, j+1) - getPressure(i, j-1)) / (2*Dx);
 }
 
 
