@@ -167,7 +167,7 @@ void cfd::advect()
     {
       x = i*Dx - velocity1[vIndex(i,j,0)]*dt * obstruction[oIndex(i,j)];
       y = j*Dx - velocity1[vIndex(i,j,1)]*dt * obstruction[oIndex(i,j)];
-      bilinearlyInterpolate(i, j, x,y);
+      bilinearlyInterpolate(i, j, x, y);
     }
   }
 
@@ -314,7 +314,6 @@ void cfd::computeVelocityBasedOnPressureForces()
 
 void cfd::computeObstructedFields()
 {
-  int i;
   for (int j = 0; j < Ny; ++j)
   {
     for (int i = 0; i < Nx; ++i)

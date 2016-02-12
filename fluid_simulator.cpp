@@ -341,7 +341,7 @@ int main(int argc, char** argv)
 
   setNbCores(4);
 
-  string imagename = clf.find("-image", "none", "Image to drive color");
+  string imagename = clf.find("-image", "dali1.jpeg", "Image to drive color");
 
   clf.usage("-h");
   clf.printFinds();
