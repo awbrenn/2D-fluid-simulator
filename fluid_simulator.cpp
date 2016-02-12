@@ -66,6 +66,7 @@ int iwidth, iheight;
 float* display_map;
 float* density_source;
 float* color_source;
+float* obstruction_source;
 cfd *fluid;
 
 int paint_mode;
@@ -204,11 +205,16 @@ void DabSomePaint( int x, int y )
       for( int iy=ystart;iy<=yend; iy++)
       {
         int index = ix + iwidth*(iheight-iy-1);
-        color_source[3 * index] *= obstruction_brush[ix - xstart][iy - ystart];
-        color_source[3 * index + 1] *= obstruction_brush[ix - xstart][iy - ystart];
-        color_source[3 * index + 2] *= obstruction_brush[ix - xstart][iy - ystart];
+//        color_source[3 * index] *= obstruction_brush[ix - xstart][iy - ystart];
+//        color_source[3 * index + 1] *= obstruction_brush[ix - xstart][iy - ystart];
+//        color_source[3 * index + 2] *= obstruction_brush[ix - xstart][iy - ystart];
+        obstruction_source[index] *= obstruction_brush[ix - xstart][iy - ystart];
+//        if (obstruction_source[index] != 1.0)
+//          cout << index << endl;
       }
     }
+//  fluid->setColorSourceField(color_source);
+    fluid->setObstructionSourceField(obstruction_source);
   }
   else if( paint_mode == PAINT_SOURCE )
   {
@@ -223,9 +229,9 @@ void DabSomePaint( int x, int y )
         density_source[index] += source_brush[ix-xstart][iy-ystart];
       }
     }
+    fluid->setColorSourceField(color_source);
+    fluid->setDensitySourceField(density_source);
   }
-  fluid->setColorSourceField(color_source);
-  fluid->setDensitySourceField(density_source);
 
   return;
 }
@@ -350,6 +356,9 @@ int main(int argc, char** argv)
     color_source = new float[iwidth*iheight*3]();
 
   density_source = new float[iwidth*iheight]();
+  obstruction_source = new float[iwidth*iheight];
+  //Initialize(obstruction_source, iwidth*iheight, 1.0);
+  for(int i=0;i<iwidth*iheight;i++ ) { obstruction_source[i] = 1.0; }
 
   // initialize fluid
   fluid = new cfd(iwidth, iheight, 1.0, (float)(1.0/24.0), nloops);

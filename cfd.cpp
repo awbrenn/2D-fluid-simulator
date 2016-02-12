@@ -4,6 +4,8 @@
 #include <cmath>
 #include "cfd.h"
 #include "cfdUtility.h"
+#include "iostream"
+
 
 
 cfd::cfd(const int nx, const int ny, const float dx, const float Dt, int Nloops)
@@ -23,8 +25,11 @@ cfd::cfd(const int nx, const int ny, const float dx, const float Dt, int Nloops)
   color2 = new float[Nx*Ny*3]();
   divergence = new float[Nx*Ny]();
   pressure = new float[Nx*Ny]();
+  obstruction = new float[Nx*Ny];
+  Initialize(obstruction, Nx*Ny, 1.0);
   densitySourceField = 0;
   colorSourceField = 0;
+  obstructionSourceField = 0;
 }
 
 
@@ -36,10 +41,12 @@ cfd::~cfd()
   delete velocity2;
   delete color1;
   delete color2;
+  delete divergence;
+  delete pressure;
 }
 
 
-float cfd::getDensity(int i, int j)
+const float cfd::getDensity(int i, int j)
 {
   if (i < Nx && i >=0 && j < Ny && j >= 0)
     return density1[dIndex(i,j)];
@@ -48,7 +55,7 @@ float cfd::getDensity(int i, int j)
 }
 
 
-float cfd::getVelocity(int i, int j, int c)
+const float cfd::getVelocity(int i, int j, int c)
 {
   if (i < Nx && i >=0 && j < Ny && j >= 0)
     return velocity1[vIndex(i,j,c)];
@@ -57,7 +64,7 @@ float cfd::getVelocity(int i, int j, int c)
 }
 
 
-float cfd::getColor(int i, int j, int c)
+const float cfd::getColor(int i, int j, int c)
 {
   if (i < Nx && i >=0 && j < Ny && j >= 0)
     return color1[cIndex(i,j,c)];
@@ -66,7 +73,7 @@ float cfd::getColor(int i, int j, int c)
 }
 
 
-float cfd::getPressure(int i, int j)
+const float cfd::getPressure(int i, int j)
 {
   if (i < Nx && i >=0 && j < Ny && j >= 0)
     return pressure[pIndex(i,j)];
@@ -75,7 +82,7 @@ float cfd::getPressure(int i, int j)
 }
 
 
-float cfd::getDivergence(int i, int j)
+const float cfd::getDivergence(int i, int j)
 {
   if (i < Nx && i >=0 && j < Ny && j >= 0)
     return divergence[dIndex(i,j)];
@@ -84,23 +91,25 @@ float cfd::getDivergence(int i, int j)
 }
 
 
-float cfd::InterpolateDensity(int i, int j, float w1, float w2, float w3, float w4)
+const float cfd::InterpolateDensity(int i, int j, float w1, float w2, float w3, float w4)
 {
-  return getDensity(i    , j)     * w1 +
-         getDensity(i + 1, j)     * w2 +
-         getDensity(i    , j + 1) * w3 +
-         getDensity(i + 1, j + 1) * w4;
+  return getDensity(i    , j)     * w1 * obstruction[oIndex(i,j)] +
+         getDensity(i + 1, j)     * w2 * obstruction[oIndex(i,j)] +
+         getDensity(i    , j + 1) * w3 * obstruction[oIndex(i,j)] +
+         getDensity(i + 1, j + 1) * w4 * obstruction[oIndex(i,j)];
 }
 
-float cfd::InterpolateVelocity(int i, int j, int c, float w1, float w2, float w3, float w4)
+
+const float cfd::InterpolateVelocity(int i, int j, int c, float w1, float w2, float w3, float w4)
 {
-  return getVelocity(i    , j,     c) * w1 +
-         getVelocity(i + 1, j,     c) * w2 +
-         getVelocity(i,     j + 1, c) * w3 +
-         getVelocity(i + 1, j + 1, c) * w4;
+  return getVelocity(i    , j,     c) * w1 * obstruction[oIndex(i,j)] +
+         getVelocity(i + 1, j,     c) * w2 * obstruction[oIndex(i,j)] +
+         getVelocity(i,     j + 1, c) * w3 * obstruction[oIndex(i,j)] +
+         getVelocity(i + 1, j + 1, c) * w4 * obstruction[oIndex(i,j)];
 }
 
-float cfd::InterpolateColor(int i, int j, int c, float w1, float w2, float w3, float w4)
+
+const float cfd::InterpolateColor(int i, int j, int c, float w1, float w2, float w3, float w4)
 {
   return getColor(i    , j,     c) * w1 +
          getColor(i + 1, j,     c) * w2 +
@@ -156,8 +165,8 @@ void cfd::advect()
   {
     for (int i=0; i<Nx; ++i)
     {
-      x = i*Dx - velocity1[vIndex(i,j,0)]*dt;
-      y = j*Dx - velocity1[vIndex(i,j,1)]*dt;
+      x = i*Dx - velocity1[vIndex(i,j,0)]*dt * obstruction[oIndex(i,j)];
+      y = j*Dx - velocity1[vIndex(i,j,1)]*dt * obstruction[oIndex(i,j)];
       bilinearlyInterpolate(i, j, x,y);
     }
   }
@@ -190,21 +199,43 @@ void cfd::addSourceColor()
 
 void cfd::addSourceDensity()
 {
-  int index;
-
   if (densitySourceField != 0)
   {
     for (int j=0; j<Ny; ++j)
     {
       for (int i=0; i<Nx; ++i)
       {
-        index = dIndex(i,j);
-        density1[index] += densitySourceField[index];
+        density1[dIndex(i,j)] += densitySourceField[dIndex(i,j)];
       }
     }
     // re-initialize colorSourceField
     Initialize(densitySourceField, Nx*Ny, 0.0);
     densitySourceField = 0;
+  }
+}
+
+
+void cfd::addSourceObstruction()
+{
+  if (obstructionSourceField != 0)
+  {
+    float* color = getColorPointer();
+
+    for (int j=0; j<Ny; ++j)
+    {
+      for (int i=0; i<Nx; ++i)
+      {
+        obstruction[oIndex(i,j)] *= obstructionSourceField[oIndex(i,j)];
+
+        // remove color where the obstruction is
+        color[cIndex(i,j,0)] *= obstructionSourceField[oIndex(i,j)];
+        color[cIndex(i,j,1)] *= obstructionSourceField[oIndex(i,j)];
+        color[cIndex(i,j,2)] *= obstructionSourceField[oIndex(i,j)];
+      }
+    }
+    // re-initialize colorSourceField
+    Initialize(obstructionSourceField, Nx*Ny, 1.0);
+    obstructionSourceField = 0;
   }
 }
 
@@ -215,8 +246,8 @@ void cfd::computeVelocity(float force_x, float force_y)
   {
     for (int i=0; i<Nx; ++i)
     {
-      velocity1[vIndex(i,j,0)] += force_x * density1[dIndex(i,j)]*dt;
-      velocity1[vIndex(i,j,1)] += force_y * density1[dIndex(i,j)]*dt;
+      velocity1[vIndex(i,j,0)] += (force_x * density1[dIndex(i,j)]*dt);
+      velocity1[vIndex(i,j,1)] += (force_y * density1[dIndex(i,j)]*dt);
     }
   }
 }
@@ -281,15 +312,38 @@ void cfd::computeVelocityBasedOnPressureForces()
 }
 
 
+void cfd::computeObstructedFields()
+{
+  int i;
+  for (int j = 0; j < Ny; ++j)
+  {
+    for (int i = 0; i < Nx; ++i)
+    {
+      velocity1[vIndex(i, j, 0)] *= obstruction[oIndex(i, j)];
+      velocity1[vIndex(i, j, 0)] *= obstruction[oIndex(i, j)];
+      density1[dIndex(i,j)] *= obstruction[oIndex(i,j)];
+
+      // set boundaries
+      if (i == 0 || i == Nx-1)
+        velocity1[vIndex(i,j,0)] = 0.0f;
+      else if (j == 0 || j == Ny - 1)
+        velocity1[vIndex(i,j,1)] = 0.0f;
+    }
+  }
+}
+
+
 void cfd::sources()
 {
   // add sources
   addSourceColor();
   addSourceDensity();
+  addSourceObstruction();
 
   // compute sources
   computeVelocity(gravityX, gravityY);
   computeDivergence();
   computePressure();
   computeVelocityBasedOnPressureForces();
+  computeObstructedFields();
 }

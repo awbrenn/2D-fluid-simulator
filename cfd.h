@@ -5,7 +5,6 @@
 #ifndef ADVECTION_CFD_H
 #define ADVECTION_CFD_H
 
-
 class cfd
 {
   public:
@@ -21,12 +20,14 @@ class cfd
     float* getColorPointer()    const { return color1; }
 
     // setters
-    void setDensitySourceField(float* dsrc) { densitySourceField = dsrc; }
-    void setColorSourceField(float* csrc)   { colorSourceField = csrc; }
+    void setDensitySourceField(float* dsrc)     { densitySourceField = dsrc; }
+    void setColorSourceField(float* csrc)       { colorSourceField = csrc; }
+    void setObstructionSourceField(float* osrc) { obstructionSourceField = osrc; }
 
     // indexing
     int dIndex(int i, int j)        const { return i+Nx*j; }
     int pIndex(int i, int j)        const { return i+Nx*j; }
+    int oIndex(int i, int j)        const { return i+Nx*j; }
     int vIndex(int i, int j, int c) const { return (i+Nx*j)*2+c; }
     int cIndex(int i, int j, int c) const { return (i+Nx*j)*3+c; }
 
@@ -41,26 +42,30 @@ class cfd
     float   *color1, *color2;
     float   *divergence;
     float   *pressure;
+    float   *obstruction;
     float   *densitySourceField;
     float   *colorSourceField;
+    float   *obstructionSourceField;
 
     // private methods
     void addSourceColor();
     void addSourceDensity();
+    void addSourceObstruction();
     void computeDivergence();
     void computePressure();
     void computePressureForces(int i, int j, float* force_x, float* force_y);
     void computeVelocityBasedOnPressureForces();
     void bilinearlyInterpolate(const int ii, const int jj, const float x, const float y);
     void computeVelocity(float force_x, float force_y);
-    float InterpolateColor(int i, int j, int c, float w1, float w2, float w3, float w4);
-    float InterpolateVelocity(int i, int j, int c, float w1, float w2, float w3, float w4);
-    float InterpolateDensity(int i, int j, float w1, float w2, float w3, float w4);
-    float getDensity(int i, int j);
-    float getVelocity(int i, int j, int c);
-    float getColor(int i, int j, int c);
-    float getPressure(int i, int j);
-    float getDivergence(int i, int j);
+    void computeObstructedFields();
+    const float InterpolateColor(int i, int j, int c, float w1, float w2, float w3, float w4);
+    const float InterpolateVelocity(int i, int j, int c, float w1, float w2, float w3, float w4);
+    const float InterpolateDensity(int i, int j, float w1, float w2, float w3, float w4);
+    const float getDensity(int i, int j);
+    const float getVelocity(int i, int j, int c);
+    const float getColor(int i, int j, int c);
+    const float getPressure(int i, int j);
+    const float getDivergence(int i, int j);
 };
 
 #endif //ADVECTION_CFD_H
