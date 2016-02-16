@@ -68,6 +68,8 @@ float* density_source;
 float* color_source;
 float* obstruction_source;
 cfd *fluid;
+int frame_count = 0;
+string output_path;
 
 int paint_mode;
 enum{ PAINT_OBSTRUCTION, PAINT_SOURCE, PAINT_DIVERGENCE, PAINT_COLOR };
@@ -83,6 +85,16 @@ float source_brush[BRUSH_SIZE][BRUSH_SIZE];
 int xmouse_prev, ymouse_prev;
 
 ////////  OpenImageIO reader
+
+
+void handleError(const char* error_message, int kill)
+{
+  fprintf(stderr, "Error: %s\n\n", error_message);
+
+  if (kill == 1)
+    exit(-1);
+}
+
 
 int readOIIOImage( const char* fname)
 {
@@ -115,6 +127,30 @@ int readOIIOImage( const char* fname)
   delete in;
 
   return 0;
+}
+
+
+void writeImage()
+{
+  char buffer [256];
+  if (sprintf(buffer, "%sfluid_simulator_%04d.jpg", output_path.c_str(), frame_count++) < 0) {
+    handleError((const char *) "creating filename in writeImage() failed", 0);
+    return;
+  }
+  const char *filename = buffer;
+  const int xres = iwidth, yres = iheight;
+  const int channels = 3; // RGB
+  //float* pixels[xres*yres*channels];
+  ImageOutput *out = ImageOutput::create (filename);
+  if (! out) {
+    handleError((const char *) "creating output file in writeImage() failed", 0);
+    return;
+  }
+  ImageSpec spec (xres, yres, channels, TypeDesc::FLOAT);
+  out->open (filename, spec);
+  out->write_image (TypeDesc::FLOAT, fluid->getColorPointer());
+  out->close ();
+  delete out;
 }
 
 
@@ -263,6 +299,7 @@ void cbIdle()
 {
   update();
   ConvertToDisplay();
+  writeImage();
   glutPostRedisplay(); 
 }
 
@@ -338,6 +375,8 @@ int main(int argc, char** argv)
   iheight = clf.find("-NY", iwidth, "Vertical grid points");
 
   int nloops = clf.find("-nloops", 3, "Number of loops over pressure.");
+
+  output_path = clf.find("-output_path", "output_images/", "Output path for writing image sequence");
 
   setNbCores(4);
 
