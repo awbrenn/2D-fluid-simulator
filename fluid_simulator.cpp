@@ -70,6 +70,7 @@ float* obstruction_source;
 cfd *fluid;
 int frame_count = 0;
 string output_path;
+bool capture_mode;
 
 int paint_mode;
 enum{ PAINT_OBSTRUCTION, PAINT_SOURCE, PAINT_DIVERGENCE, PAINT_COLOR };
@@ -140,17 +141,34 @@ void writeImage()
   const char *filename = buffer;
   const int xres = iwidth, yres = iheight;
   const int channels = 3; // RGB
-  //float* pixels[xres*yres*channels];
+  float* pixels = new float[xres*yres*channels];
   ImageOutput *out = ImageOutput::create (filename);
   if (! out) {
     handleError((const char *) "creating output file in writeImage() failed", 0);
     return;
   }
+
+  long index = 0;
+  float* current_fluid_color = fluid->getColorPointer();
+
+  for( int j=0;j<iheight;j++)
+  {
+    for (int i = 0; i < iwidth; i++)
+    {
+      for (int c = 0; c < channels; c++)
+      {
+        pixels[ (i + iwidth*(iheight - j - 1))*channels + c ] = current_fluid_color[index++];
+      }
+    }
+  }
+
   ImageSpec spec (xres, yres, channels, TypeDesc::FLOAT);
   out->open (filename, spec);
-  out->write_image (TypeDesc::FLOAT, fluid->getColorPointer());
+  out->write_image (TypeDesc::FLOAT, pixels);
   out->close ();
   delete out;
+
+  delete pixels;
 }
 
 
@@ -297,9 +315,11 @@ void update()
 // animate and display new result
 void cbIdle()
 {
-  update();
+  if (toggle_animation_on_off)
+    update();
   ConvertToDisplay();
-  writeImage();
+  if (capture_mode)
+    writeImage();
   glutPostRedisplay(); 
 }
 
@@ -309,27 +329,44 @@ void cbOnKeyboard( unsigned char key, int x, int y )
   switch (key) 
   {
     case '-': case '_':
-    resetScaleFactor( 0.9 );
-    break;
+      resetScaleFactor( 0.9 );
+      break;
 
     case '+': case '=':
-    resetScaleFactor( (float)(1.0/0.9) );
-    break;
+      resetScaleFactor( (float)(1.0/0.9) );
+      break;
 
     case 'r':
-    scaling_factor = 1.0;
-    break;
+      scaling_factor = 1.0;
+      break;
 
     case ' ':
-    toggle_animation_on_off = !toggle_animation_on_off;
+      toggle_animation_on_off = !toggle_animation_on_off;
+      if (toggle_animation_on_off)
+        cout << "Animation Toggled On" << endl;
+      else
+        cout << "Animation Toggled Off" << endl;
+      break;
 
     case 'o':
-    paint_mode = PAINT_OBSTRUCTION;
-    break;
+      paint_mode = PAINT_OBSTRUCTION;
+      break;
 
     case 's':
-    paint_mode = PAINT_SOURCE;
-    break;
+      paint_mode = PAINT_SOURCE;
+      break;
+
+    case 'w':
+      capture_mode = !capture_mode;
+      if (capture_mode)
+        cout << "Starting Capture..." << endl;
+      else
+        cout << "...Ending Capture" << endl;
+      break;
+
+    case 'q':
+      cout << "Exiting Program." << endl;
+      exit(0);
 
     default:
     break;
@@ -358,10 +395,13 @@ void cbMouseMove( int x, int y )
 void PrintUsage()
 {
   cout << "cfd_paint keyboard choices\n";
-  cout << "s       turns on painting source strength\n";
-  cout << "o       turns on painting obstructions\n";
-  cout << "+/-     increase/decrease brightness of display\n";
-  cout << "r       resets brightness to default\n";
+  cout << "s        turns on painting source strength\n";
+  cout << "o        turns on painting obstructions\n";
+  cout << "+/-      increase/decrease brightness of display\n";
+  cout << "r        resets brightness to default\n";
+  cout << "w        starts capture mode. file path can be set with -output_path flag\n";
+  cout << "spacebar paused the simulation. pressing it again un-pauses the simulation\n";
+  cout << "q        exits the program\n";
 }
 
 
@@ -389,6 +429,7 @@ int main(int argc, char** argv)
   // initialize a few variables
   scaling_factor = 1.0;
   toggle_animation_on_off = true;
+  capture_mode = false;
 
   // if reading the image fails we need to allocate space for color_source
   if (readOIIOImage(imagename.c_str()) != 0)
