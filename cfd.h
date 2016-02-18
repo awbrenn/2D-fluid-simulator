@@ -23,6 +23,7 @@ class cfd
     void setDensitySourceField(float* dsrc)     { densitySourceField = dsrc; }
     void setColorSourceField(float* csrc)       { colorSourceField = csrc; }
     void setObstructionSourceField(float* osrc) { obstructionSourceField = osrc; }
+    void setDivergenceSourceField(float* dsrc) { divergenceSourceField = dsrc; }
 
     // indexing
     int dIndex(int i, int j)        const { return i+Nx*j; }
@@ -47,11 +48,13 @@ class cfd
     float   *densitySourceField;
     float   *colorSourceField;
     float   *obstructionSourceField;
+    float   *divergenceSourceField;
 
     // private methods
     void addSourceColor();
     void addSourceDensity();
     void addSourceObstruction();
+    void addSourceDivergence();
     void computeDivergence();
     void computePressure();
     void computePressureForces(int i, int j, float* force_x, float* force_y);

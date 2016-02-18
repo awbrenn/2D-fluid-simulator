@@ -67,13 +67,14 @@ float* display_map;
 float* density_source;
 float* color_source;
 float* obstruction_source;
+float* divergance_source;
 cfd *fluid;
 int frame_count = 0;
 string output_path;
 bool capture_mode;
 
 int paint_mode;
-enum{ PAINT_OBSTRUCTION, PAINT_SOURCE, PAINT_DIVERGENCE, PAINT_COLOR };
+enum{ PAINT_OBSTRUCTION, PAINT_SOURCE, PAINT_DIVERGENCE_POSITIVE, PAINT_DIVERGENCE_NEGATIVE, PAINT_COLOR };
 
 bool toggle_animation_on_off;
 
@@ -239,53 +240,65 @@ void resetScaleFactor( float amount )
 
 
 
-void DabSomePaint( int x, int y )
-{
-  int brush_width = (BRUSH_SIZE-1)/2;
+void DabSomePaint( int x, int y ) {
+  float divergence_source_magnitude = 250.0f;
+  int brush_width = (BRUSH_SIZE - 1) / 2;
   int xstart = x - brush_width;
   int ystart = y - brush_width;
-  if( xstart < 0 ){ xstart = 0; }
-  if( ystart < 0 ){ ystart = 0; }
+  if (xstart < 0) { xstart = 0; }
+  if (ystart < 0) { ystart = 0; }
 
   int xend = x + brush_width;
   int yend = y + brush_width;
-  if( xend >= iwidth ){ xend = iwidth-1; }
-  if( yend >= iheight ){ yend = iheight-1; }
+  if (xend >= iwidth) { xend = iwidth - 1; }
+  if (yend >= iheight) { yend = iheight - 1; }
 
-  if( paint_mode == PAINT_OBSTRUCTION )
-  {
-    for(int ix=xstart;ix <= xend; ix++)
-    {
-      for( int iy=ystart;iy<=yend; iy++)
-      {
-        int index = ix + iwidth*(iheight-iy-1);
-//        color_source[3 * index] *= obstruction_brush[ix - xstart][iy - ystart];
-//        color_source[3 * index + 1] *= obstruction_brush[ix - xstart][iy - ystart];
-//        color_source[3 * index + 2] *= obstruction_brush[ix - xstart][iy - ystart];
+  if (paint_mode == PAINT_OBSTRUCTION) {
+    for (int ix = xstart; ix <= xend; ix++) {
+      for (int iy = ystart; iy <= yend; iy++) {
+        int index = ix + iwidth * (iheight - iy - 1);
         obstruction_source[index] *= obstruction_brush[ix - xstart][iy - ystart];
-//        if (obstruction_source[index] != 1.0)
-//          cout << index << endl;
       }
     }
 //  fluid->setColorSourceField(color_source);
     fluid->setObstructionSourceField(obstruction_source);
   }
-  else if( paint_mode == PAINT_SOURCE )
-  {
-    for(int ix=xstart;ix <= xend; ix++)
-    {
-      for( int iy=ystart;iy<=yend; iy++)
-      {
-        int index = ix + iwidth*(iheight-iy-1);
+  else if (paint_mode == PAINT_SOURCE) {
+    for (int ix = xstart; ix <= xend; ix++) {
+      for (int iy = ystart; iy <= yend; iy++) {
+        int index = ix + iwidth * (iheight - iy - 1);
         color_source[3 * index] += source_brush[ix - xstart][iy - ystart];
         color_source[3 * index + 1] += source_brush[ix - xstart][iy - ystart];
         color_source[3 * index + 2] += source_brush[ix - xstart][iy - ystart];
-        density_source[index] += source_brush[ix-xstart][iy-ystart];
+        density_source[index] += source_brush[ix - xstart][iy - ystart];
       }
     }
     fluid->setColorSourceField(color_source);
     fluid->setDensitySourceField(density_source);
   }
+  else if (paint_mode == PAINT_DIVERGENCE_POSITIVE ) {
+    for (int ix = xstart; ix <= xend; ix++) {
+      for (int iy = ystart; iy <= yend; iy++) {
+        int index = ix + iwidth * (iheight - iy - 1);
+        color_source[3 * index + 2] += source_brush[ix - xstart][iy - ystart];
+        divergance_source[index] += source_brush[ix - xstart][iy - ystart]*divergence_source_magnitude;
+      }
+    }
+    fluid->setColorSourceField(color_source);
+    fluid->setDivergenceSourceField(divergance_source);
+  }
+  else if ( paint_mode == PAINT_DIVERGENCE_NEGATIVE ) {
+    for (int ix = xstart; ix <= xend; ix++) {
+      for (int iy = ystart; iy <= yend; iy++) {
+        int index = ix + iwidth * (iheight - iy - 1);
+        color_source[3 * index] += source_brush[ix - xstart][iy - ystart];
+        divergance_source[index] += source_brush[ix - xstart][iy - ystart]*divergence_source_magnitude*(-1.0f);
+      }
+    }
+    fluid->setColorSourceField(color_source);
+    fluid->setDivergenceSourceField(divergance_source);
+  }
+
 
   return;
 }
@@ -336,7 +349,7 @@ void cbOnKeyboard( unsigned char key, int x, int y )
       resetScaleFactor( (float)(1.0/0.9) );
       break;
 
-    case 'r':
+    case 'c':
       scaling_factor = 1.0;
       break;
 
@@ -350,10 +363,22 @@ void cbOnKeyboard( unsigned char key, int x, int y )
 
     case 'o':
       paint_mode = PAINT_OBSTRUCTION;
+      cout << "Paint Obstruction Mode" << endl;
       break;
 
     case 's':
       paint_mode = PAINT_SOURCE;
+      cout << "Paint Source Density Mode" << endl;
+      break;
+
+    case 'b':
+      paint_mode = PAINT_DIVERGENCE_POSITIVE;
+      cout << "Paint Positive Divergence Mode" << endl;
+      break;
+
+    case 'r':
+      paint_mode = PAINT_DIVERGENCE_NEGATIVE;
+      cout << "Paint Negative Divergence Mode" << endl;
       break;
 
     case 'w':
@@ -397,8 +422,10 @@ void PrintUsage()
   cout << "cfd_paint keyboard choices\n";
   cout << "s        turns on painting source strength\n";
   cout << "o        turns on painting obstructions\n";
+  cout << "b        turns on painting positive divergence\n";
+  cout << "r        turns on painting negative divergence\n";
   cout << "+/-      increase/decrease brightness of display\n";
-  cout << "r        resets brightness to default\n";
+  cout << "c        clears changes to brightness\n";
   cout << "w        starts capture mode. file path can be set with -output_path flag\n";
   cout << "spacebar paused the simulation. pressing it again un-pauses the simulation\n";
   cout << "q        exits the program\n";
@@ -437,9 +464,12 @@ int main(int argc, char** argv)
     color_source = new float[iwidth*iheight*3]();
 
   density_source = new float[iwidth*iheight]();
+
+  // create obstruction source and initialize it to 1.0
   obstruction_source = new float[iwidth*iheight];
-  //Initialize(obstruction_source, iwidth*iheight, 1.0);
   for(int i=0;i<iwidth*iheight;i++ ) { obstruction_source[i] = 1.0; }
+
+  divergance_source = new float[iwidth*iheight*3]();
 
   // initialize fluid
   fluid = new cfd(iwidth, iheight, 1.0, (float)(1.0/24.0), nloops, oploops);
