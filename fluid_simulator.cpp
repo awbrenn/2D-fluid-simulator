@@ -415,6 +415,7 @@ int main(int argc, char** argv)
   iheight = clf.find("-NY", iwidth, "Vertical grid points");
 
   int nloops = clf.find("-nloops", 3, "Number of loops over pressure.");
+  int oploops = clf.find("-oploops", 1, "Number of orthogonal projection loops.");
 
   output_path = clf.find("-output_path", "output_images/", "Output path for writing image sequence");
 
@@ -441,7 +442,7 @@ int main(int argc, char** argv)
   for(int i=0;i<iwidth*iheight;i++ ) { obstruction_source[i] = 1.0; }
 
   // initialize fluid
-  fluid = new cfd(iwidth, iheight, 1.0, (float)(1.0/24.0), nloops);
+  fluid = new cfd(iwidth, iheight, 1.0, (float)(1.0/24.0), nloops, oploops);
   fluid->setColorSourceField(color_source);
 
   display_map = new float[iwidth*iheight*3];

@@ -8,13 +8,14 @@
 
 
 
-cfd::cfd(const int nx, const int ny, const float dx, const float Dt, int Nloops)
+cfd::cfd(const int nx, const int ny, const float dx, const float Dt, int Nloops, int Oploops)
 {
   Nx = nx;
   Ny = ny;
   Dx = dx;
   dt = Dt;
   nloops = Nloops;
+  oploops = Oploops;
   gravityX = 0.0;
   gravityY = (float)(-9.8);
   density1 = new float[Nx*Ny]();
@@ -188,6 +189,16 @@ void cfd::addSourceColor()
         color1[cIndex(i,j,0)] += colorSourceField[cIndex(i,j,0)];
         color1[cIndex(i,j,1)] += colorSourceField[cIndex(i,j,1)];
         color1[cIndex(i,j,2)] += colorSourceField[cIndex(i,j,2)];
+
+        // clamp color values to 1.0f
+        if (color1[cIndex(i,j,0)] > 1.0f)
+          color1[cIndex(i,j,0)] = 1.0f;
+
+        if (color1[cIndex(i,j,1)] > 1.0f)
+          color1[cIndex(i,j,1)] = 1.0f;
+
+        if (color1[cIndex(i,j,2)] > 1.0f)
+          color1[cIndex(i,j,2)] = 1.0f;
       }
     }
     // re-initialize colorSourceField
@@ -341,8 +352,12 @@ void cfd::sources()
 
   // compute sources
   computeVelocity(gravityX, gravityY);
-  computeDivergence();
-  computePressure();
-  computeVelocityBasedOnPressureForces();
-  computeObstructedFields();
+
+  for (int i = 0; i < oploops; ++i)
+  {
+    computeDivergence();
+    computePressure();
+    computeVelocityBasedOnPressureForces();
+    computeObstructedFields();
+  }
 }

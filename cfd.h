@@ -9,7 +9,7 @@ class cfd
 {
   public:
     // constructors/destructors
-    cfd(const int nx, const int ny, const float dx, const float dt, int nloops);
+    cfd(const int nx, const int ny, const float dx, const float dt, int Nloops, int Oploops);
     ~cfd();
 
     // public methods
@@ -33,7 +33,8 @@ class cfd
 
   private:
     int     Nx, Ny;
-    int     nloops;
+    int     nloops; // number of loops for pressure calculation
+    int     oploops; // number of orthogonal projection loops
     float   Dx;
     float   dt;
     float   gravityX, gravityY;
