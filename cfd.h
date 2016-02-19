@@ -2,8 +2,8 @@
 // Created by awbrenn on 1/20/16.
 //
 
-#ifndef ADVECTION_CFD_H
-#define ADVECTION_CFD_H
+#ifndef CFD_H
+#define CFD_H
 
 class cfd
 {
@@ -71,4 +71,4 @@ class cfd
     const float getDivergence(int i, int j);
 };
 
-#endif //ADVECTION_CFD_H
+#endif //CFD_H

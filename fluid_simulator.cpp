@@ -1,7 +1,9 @@
 //------------------------------------------------
 //
-//  cfd_paint
-//
+//  Program: fluid_simulator
+//  Author:  Austin Brennan
+//  Course:  Realtime Fluid Simulation (CPSC 8810)
+//  School:  Clemson University
 //
 //-------------------------------------------------
 
@@ -9,13 +11,13 @@
 //
 //  usage:
 //
-//  cfd_paint is an interactive paint program
+//  fluid_simulator is an interactive paint program
 //  in which the user paints density, color, and
 //  or divergence sources that flow using
 //  computational fluid dynamics and react with 
 //  obstructions in the space.
 //
-//  There are two paint modes.  Typing 'o' puts the
+//  There are several paint modes.  Typing 'o' puts the
 //  program in obstruction painting mode. When you
 //  hold down the left mouse button and paint, you
 //  will see a black obstruction painted.  This 
@@ -29,15 +31,19 @@
 //  obstructions that have been painted or are
 //  subsequently painted.
 //
-//  Typing 'b' clears all obstructions, flow, density,
-//  and color.
+//  Typing 'b' puts the program in painting positive
+//  divergence mode. Similiarly typing 'r' puts the
+//  program in painting negative divergence mode.
+//  Painting in this mode injects divergence into the
+//  simulation.
+//
+//  Typing ',' or '.' increases or decreases the brush
+//  size respectively.
 //
 //  Typing '=' and '-' brightens and darkens the display.
 //
 //  Pressing the spacebar starts and stops the flow 
-//  evolution. While the evolution is stopped, you
-//  can continue painting obstructions.
-//
+//  evolution.
 //
 //
 //-------------------------------------------------
@@ -96,6 +102,13 @@ void handleError(const char* error_message, int kill)
   if (kill == 1)
     exit(-1);
 }
+
+
+//----------------------------------------------------
+//
+//  Read and Write Images
+//
+//----------------------------------------------------
 
 
 int readOIIOImage( const char* fname)
@@ -173,12 +186,12 @@ void writeImage()
 }
 
 
-//--------------------------------------------------------
+//----------------------------------------------------
 //
-//  Initialization routines
+//  Initialize brushes and set number of cores
 //
-//  
-// Initialize all of the fields to zero
+//----------------------------------------------------
+
 
 void InitializeBrushes(int new_brush_size)
 {
@@ -228,6 +241,11 @@ void setNbCores( int nb )
 
 
 //----------------------------------------------------
+//
+//  Painting and Display Code
+//
+//----------------------------------------------------
+
 
 void ConvertToDisplay()
 {
@@ -249,17 +267,10 @@ void ConvertToDisplay()
   }
 }
 
-
-//------------------------------------------
-//
-//  Painting and display code
-//
-
 void resetScaleFactor( float amount )
 {
    scaling_factor *= amount;
 }
-
 
 
 void DabSomePaint( int x, int y ) {
@@ -319,7 +330,6 @@ void DabSomePaint( int x, int y ) {
     fluid->setColorSourceField(color_source);
     fluid->setDivergenceSourceField(divergance_source);
   }
-
 
   return;
 }
@@ -448,6 +458,13 @@ void cbMouseMove( int x, int y )
 }
 
 
+//----------------------------------------------------
+//
+//  Printing Usage
+//
+//----------------------------------------------------
+
+
 void PrintUsage()
 {
   cout << "cfd_paint keyboard choices\n";
@@ -464,7 +481,12 @@ void PrintUsage()
 }
 
 
-//---------------------------------------------------
+//----------------------------------------------------
+//
+// Main
+//
+//----------------------------------------------------
+
 
 int main(int argc, char** argv)
 {

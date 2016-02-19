@@ -7,7 +7,6 @@
 #include "iostream"
 
 
-
 cfd::cfd(const int nx, const int ny, const float dx, const float Dt, int Nloops, int Oploops)
 {
   Nx = nx;
@@ -134,27 +133,14 @@ void cfd::bilinearlyInterpolate(const int ii, const int jj, const float x, const
   const float w3 = (1-ax) * ay;
   const float w4 = ax * ay;
 
-  if (i < Nx && i >=0 && j < Ny && j >= 0) {
+  density2[dIndex(ii, jj)] = InterpolateDensity(i, j, w1, w2, w3, w4);
 
-    density2[dIndex(ii, jj)] = InterpolateDensity(i, j, w1, w2, w3, w4);
+  velocity2[vIndex(ii, jj, 0)] = InterpolateVelocity(i, j, 0, w1, w2, w3, w4);
+  velocity2[vIndex(ii, jj, 1)] = InterpolateVelocity(i, j, 1, w1, w2, w3, w4);
 
-    velocity2[vIndex(ii, jj, 0)] = InterpolateVelocity(i, j, 0, w1, w2, w3, w4);
-    velocity2[vIndex(ii, jj, 1)] = InterpolateVelocity(i, j, 1, w1, w2, w3, w4);
-
-    color2[cIndex(ii, jj, 0)] = InterpolateColor(i, j, 0, w1, w2, w3, w4);
-    color2[cIndex(ii, jj, 1)] = InterpolateColor(i, j, 1, w1, w2, w3, w4);
-    color2[cIndex(ii, jj, 2)] = InterpolateColor(i, j, 2, w1, w2, w3, w4);
-  }
-  else // you are out of bounds
-  {
-    density2[dIndex(ii, jj)]   = 0.0f;
-    velocity2[vIndex(ii,jj,0)] = 0.0f;
-    velocity2[vIndex(ii,jj,1)] = 0.0f;
-    color2[cIndex(ii,jj,0)]    = 0.0f;
-    color2[cIndex(ii,jj,1)]    = 0.0f;
-    color2[cIndex(ii,jj,2)]    = 0.0f;
-  }
-
+  color2[cIndex(ii, jj, 0)] = InterpolateColor(i, j, 0, w1, w2, w3, w4);
+  color2[cIndex(ii, jj, 1)] = InterpolateColor(i, j, 1, w1, w2, w3, w4);
+  color2[cIndex(ii, jj, 2)] = InterpolateColor(i, j, 2, w1, w2, w3, w4);
 }
 
 
@@ -187,9 +173,9 @@ void cfd::addSourceColor()
     {
       for (int i=0; i<Nx; ++i)
       {
-        color1[cIndex(i,j,0)] += colorSourceField[cIndex(i,j,0)];
-        color1[cIndex(i,j,1)] += colorSourceField[cIndex(i,j,1)];
-        color1[cIndex(i,j,2)] += colorSourceField[cIndex(i,j,2)];
+        color1[cIndex(i,j,0)] += colorSourceField[cIndex(i,j,0)] * obstruction[oIndex(i,j)];
+        color1[cIndex(i,j,1)] += colorSourceField[cIndex(i,j,1)] * obstruction[oIndex(i,j)];;
+        color1[cIndex(i,j,2)] += colorSourceField[cIndex(i,j,2)] * obstruction[oIndex(i,j)];;
 
         // clamp color values to 1.0f
         if (color1[cIndex(i,j,0)] > 1.0f)
@@ -217,7 +203,7 @@ void cfd::addSourceDensity()
     {
       for (int i=0; i<Nx; ++i)
       {
-        density1[dIndex(i,j)] += densitySourceField[dIndex(i,j)];
+        density1[dIndex(i,j)] += densitySourceField[dIndex(i,j)] * obstruction[oIndex(i,j)];;
       }
     }
     // re-initialize colorSourceField
@@ -250,6 +236,7 @@ void cfd::addSourceObstruction()
     obstructionSourceField = 0;
   }
 }
+
 
 void cfd::computeVelocity(float force_x, float force_y)
 {
