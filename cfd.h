@@ -54,7 +54,6 @@ class cfd
     void addSourceColor();
     void addSourceDensity();
     void addSourceObstruction();
-    void addSourceDivergence();
     void computeDivergence();
     void computePressure();
     void computePressureForces(int i, int j, float* force_x, float* force_y);

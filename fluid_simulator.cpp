@@ -80,9 +80,9 @@ bool toggle_animation_on_off;
 
 float scaling_factor;
 
-#define BRUSH_SIZE 11
-float obstruction_brush[BRUSH_SIZE][BRUSH_SIZE];
-float source_brush[BRUSH_SIZE][BRUSH_SIZE];
+int BRUSH_SIZE = 11;
+float **obstruction_brush = NULL;
+float **source_brush = NULL;
 
 int xmouse_prev, ymouse_prev;
 
@@ -180,8 +180,30 @@ void writeImage()
 //  
 // Initialize all of the fields to zero
 
-void InitializeBrushes()
+void InitializeBrushes(int new_brush_size)
 {
+  // deallocate old brushes
+  if (source_brush != NULL) {
+    for (int i = 0; i < BRUSH_SIZE; ++i) {delete source_brush[i]; }
+    delete source_brush;
+  }
+  if (obstruction_brush != NULL) {
+    for (int i = 0; i < BRUSH_SIZE; ++i) {delete obstruction_brush[i]; }
+    delete obstruction_brush;
+  }
+
+  // set BRUSH_SIZE to the new brush size. clamp min size to 3
+  if (new_brush_size < 3)
+    BRUSH_SIZE = 3;
+  else
+    BRUSH_SIZE = new_brush_size;
+
+  // allocate memory for new brushes
+  source_brush = new float*[BRUSH_SIZE];
+  for (int i = 0; i < BRUSH_SIZE; ++i) {source_brush[i] = new float[BRUSH_SIZE]; }
+  obstruction_brush = new float*[BRUSH_SIZE];
+  for (int i = 0; i < BRUSH_SIZE; ++i) {obstruction_brush[i] = new float[BRUSH_SIZE]; }
+
   int brush_width = (BRUSH_SIZE-1)/2;
   for( int j=-brush_width;j<=brush_width;j++ )
   {
@@ -260,7 +282,6 @@ void DabSomePaint( int x, int y ) {
         obstruction_source[index] *= obstruction_brush[ix - xstart][iy - ystart];
       }
     }
-//  fluid->setColorSourceField(color_source);
     fluid->setObstructionSourceField(obstruction_source);
   }
   else if (paint_mode == PAINT_SOURCE) {
@@ -361,6 +382,16 @@ void cbOnKeyboard( unsigned char key, int x, int y )
         cout << "Animation Toggled Off" << endl;
       break;
 
+    case ',' : case '<':
+      InitializeBrushes(BRUSH_SIZE-2);
+      cout << "Setting Brush Size To " << BRUSH_SIZE << endl;
+      break;
+
+    case '.': case '>':
+      InitializeBrushes(BRUSH_SIZE+2);
+      cout << "Setting Brush Size To " << BRUSH_SIZE << endl;
+      break;
+
     case 'o':
       paint_mode = PAINT_OBSTRUCTION;
       cout << "Paint Obstruction Mode" << endl;
@@ -390,7 +421,7 @@ void cbOnKeyboard( unsigned char key, int x, int y )
       break;
 
     case 'q':
-      cout << "Exiting Program." << endl;
+      cout << "Exiting Program" << endl;
       exit(0);
 
     default:
@@ -425,6 +456,7 @@ void PrintUsage()
   cout << "b        turns on painting positive divergence\n";
   cout << "r        turns on painting negative divergence\n";
   cout << "+/-      increase/decrease brightness of display\n";
+  cout << ",/.      increase/decrease brush size\n";
   cout << "c        clears changes to brightness\n";
   cout << "w        starts capture mode. file path can be set with -output_path flag\n";
   cout << "spacebar paused the simulation. pressing it again un-pauses the simulation\n";
@@ -453,6 +485,7 @@ int main(int argc, char** argv)
   clf.usage("-h");
   clf.printFinds();
   PrintUsage();
+  cout << "\n\nPROGRAM OUTPUT:\n";
 
   // initialize a few variables
   scaling_factor = 1.0;
@@ -477,7 +510,7 @@ int main(int argc, char** argv)
 
   display_map = new float[iwidth*iheight*3];
 
-  InitializeBrushes();
+  InitializeBrushes(BRUSH_SIZE);
 
   paint_mode = PAINT_SOURCE;
 

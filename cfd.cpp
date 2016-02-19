@@ -251,12 +251,6 @@ void cfd::addSourceObstruction()
   }
 }
 
-
-void cfd::addSourceDivergence() {
-
-}
-
-
 void cfd::computeVelocity(float force_x, float force_y)
 {
   for (int j=0; j<Ny; ++j)
@@ -287,7 +281,6 @@ void cfd::computeDivergence()
         divergence[index] += divergenceSourceField[index];
     }
   }
-
   if (divergenceSourceField != 0) {
     // re-initialize colorSourceField
     Initialize(divergenceSourceField, Nx * Ny, 0.0);
@@ -367,7 +360,6 @@ void cfd::sources()
   addSourceColor();
   addSourceDensity();
   addSourceObstruction();
-  addSourceDivergence();
 
   // compute sources
   computeVelocity(gravityX, gravityY);
