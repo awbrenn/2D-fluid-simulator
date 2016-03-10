@@ -467,7 +467,7 @@ void cbMouseMove( int x, int y )
 
 void PrintUsage()
 {
-  cout << "cfd_paint keyboard choices\n";
+  cout << "fluid_simulator keyboard choices\n";
   cout << "s        turns on painting source strength\n";
   cout << "o        turns on painting obstructions\n";
   cout << "b        turns on painting positive divergence\n";
